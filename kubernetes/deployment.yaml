@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-stock-service
+  labels:
+    app: product-stock-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-stock-service
+  template:
+    metadata:
+      labels:
+        app: product-stock-service
+    spec:
+      containers:
+        - name: product-stock-service
+          image: <YOUR_ECR_REPO_URL>/product-stock-service:latest # Replace with your ECR repository URL
+          ports:
+            - containerPort: 8080
+          env:
+            - name: AMAZON_DYNAMODB_ENDPOINT
+              value: "http://dynamodb.us-east-1.amazonaws.com" # Or your DynamoDB Local endpoint if running in EKS with local setup
+            - name: AMAZON_AWS_REGION
+              value: "us-east-1"
+            - name: CLOUD_AWS_SQS_QUEUE_STOCK_DECREMENT
+              value: "stock-decrement-queue" # Replace with your SQS queue name
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-stock-service
+  labels:
+    app: product-stock-service
+spec:
+  selector:
+    app: product-stock-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
